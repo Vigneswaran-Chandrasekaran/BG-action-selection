@@ -11,6 +11,9 @@ start_time = 0
 end_time = 500
 simulation_length = np.arange(start_time, end_time, dt).shape[0]
 
+def sigmoid(x, a = 4, x0 = 1):
+    return (1 / (1 - np.exp(a * x - x0)))
+
 """
 Initialize structural parameters of Basal Ganglia
 -------------------------------------------------
@@ -85,6 +88,8 @@ Lat_Inh = np.zeros(shape =(simulation_length, Nc))
 
 Eng = np.zeros(simulation_length)
 
+Ip_Go_DA = np.zeros(shape = (simulation_length, Nc))
+Ip_NGo_DA = np.zeros(shape = (simulation_length, Nc))
 """
 Definition of synapses involved
 -------------------------------
@@ -199,6 +204,43 @@ for t in range(simulation_length):
             dopamine_phasic = 0
     dopamine_net = dopamine_phasic + dopamine_tonic
 
-    # find activation
+    # find sigmoid activations
     act_C[t,:] = sigmoid(Ip_C[t,:])
     act_Go[t,:] = sigmoid(Ip_Go[t,:])
+    act_NGo[t,:] = sigmoid(Ip_NGo[t,:])
+    act_GPe[t,:] = sigmoid(Ip_GPe[t,:])
+    act_GPi[t,:] = sigmoid(Ip_GPi[t,:])
+    act_ChI[t] = sigmoid(Ip_ChI[t])
+    act_Th[t,:] = sigmoid(Ip_Th[t,:])
+    act_STN[t] = sigmoid(Ip_STN[t])
+
+    #winners = np.where( act_C >= winning_threshold)[0]
+    winners = np.argmax(act_C)
+    if np.empty(winners) == False:
+        if winners == correct_winner:
+            reward = 1
+        else:
+            reward = -1
+    else:
+        reward = 0
+
+    # differential equations governing
+    Lat_Inh[t+1,:] = Lat_Inh[t,:] + (dt/tauL) * (-Lat_Inh[t,:] + Wlat * Ip_C[t,:])
+    Ip_C[t+1,:] = Ip_C[t,:] + (dt/tau) * (-Ip_C[t,:] + Wcs * Stimulus + Lat_Inh[t,:] + Wct * Ip_Th[t,:] + noise)
+    
+    Ip_Go_DA[t+1,:] = alpha * dopamine_net * Ip_Go[t,:] + W_g_ChI * Ip_ChI[t]
+    Ip_NGo_DA[t+1,:] = beta * dopamine_net * Ip_NGo[t,:] + W_n_ChI * Ip_ChI[t]
+
+    Ip_Go[t+1,:] = Ip_Go[t,:] + (dt/tau) * (-Ip_Go[t,:] + Wsg * Stimulus + Wcg * Ip_C[t,:] + Ip_Go_DA[t,:])
+    Ip_NGo[t+1,:] = Ip_NGo[t,:] + (dt/tau) * (-Ip_NGo[t,:] + Wsn * Stimulus + Wcn * Ip_C[t,:] + Ip_NGo_DA[t,:])
+    
+    Ip_GPe[t+1,:] = Ip_GPe[t,:] + (dt/tau) * (-Ip_GPe[t,:] + Wne * Ip_NGo[t,:] + W_e_STN * Ip_STN[t] + act_GPe[t,:])
+    
+    Ip_GPi[t+1,:] = Ip_GPi[t,:] + (dt/tau) * (-Ip_GPi[t,:] + Wgi * Ip_Go[t,:] + Wei * act_GPe[t,:] +
+                                                                 W_STN_i * Ip_STN[t] + act_GPi[t,:])
+
+    Ip_ChI[t+1] = Ip_ChI[t] + (dt/tau) * (-Ip_ChI[t] + act_ChI[t] + gamma * dopamine_net)
+    Ip_Th[t+1,:] = Ip_Th[t,:] + (dt/tau) * (-Ip_Th[t,:] + Wit * act_GPi[t,:] + Wtc * act_C[t,:])
+    Ip_STN[t+1] = Ip_STN[t] + (dt/tau) * (-Ip_STN[t] + W_eng_STN * Eng[t] + W_e_STN * np.sum(act_GPe[t,:]) +
+                                                        W_STN_i * np.sum(act_STN[t]))
+
