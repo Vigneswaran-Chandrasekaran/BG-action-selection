@@ -336,7 +336,7 @@ if __name__  == "__main__":
     Current_stimulus = Stimulus_1
     Current_winner = 1
     for i in range(0, N_epochs - 1):
-        
+
         Synapse_cortex_GO = Synapse_cortex_GO_monitor[i]
         Synapse_cortex_NOGO = Synapse_cortex_NOGO_monitor[i]
         Synapse_stimuli_GO = Synapse_stimuli_GO_monitor[i]
@@ -379,4 +379,4 @@ if __name__  == "__main__":
         Synapse_stimuli_GO_monitor[i+1] = Synapse_stimuli_GO_post
         Synapse_stimuli_NOGO_monitor[i+1] = Synapse_stimuli_NOGO_post
         Synapse_cortex_GO_monitor[i+1] = Synapse_cortex_GO_post
-        Synapse_cortex_NOGO_monitor[i+1] = Synapse_stimuli_NOGO_post
+        Synapse_cortex_NOGO_monitor[i+1] = Synapse_cortex_NOGO_post
