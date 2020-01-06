@@ -4,6 +4,7 @@ Simulate Basal Ganglia - Go/NoGo mechanism
 import numpy as np
 from matplotlib import pyplot as plt
 from multi_armed_bandits import BernoulliBandit
+import time
 
 def sigmoid(x, a = 1, x0 = 0):
     x = (x - np.amin(x)) / (np.amax(x) - np.amin(x))
@@ -56,7 +57,7 @@ def define_synapses(Ns):
     np.fill_diagonal(W_STN_e, np.random.random())
     np.fill_diagonal(W_STN_i, np.random.random()) 
     
-    np.fill_diagonal(W_e, 0)
+    np.fill_diagonal(W_e, 0)    
 
     return(Wit, Wne, Wgi, W_e_STN, W_STN_e, W_STN_i, W_STN, W_e)
 
@@ -118,7 +119,7 @@ def define_gains():
     beta = -1
     return alpha, beta
 
-def BG(Stimulus, reward_vector, W_g, W_n, dopamine_tonic):
+def BG(Stimulus, bandit, W_g, W_n, dopamine_tonic):
     """
         Learning Dynamics
         ----------------
@@ -136,15 +137,14 @@ def BG(Stimulus, reward_vector, W_g, W_n, dopamine_tonic):
     """
     Ns = Stimulus.shape[0]   # number of stimulus
     
-    simulation_length = 10000
-
+    simulation_length = 1000
+    
     temporal_diff_err = np.zeros((simulation_length, Ns))
     gradient_clipp = np.zeros((simulation_length, Ns))
     delta_Stimulus = np.zeros((simulation_length, Ns))
     reward_awarded = np.zeros(simulation_length)
     tot_reward_awarded = 0
     winning_slots = []
-    max_possible_reward = np.sum(reward_vector)
 
     act_Go, act_NGo, act_GPe, act_GPi, act_Th, act_STN = define_parameters(Ns, simulation_length)
 
@@ -154,7 +154,14 @@ def BG(Stimulus, reward_vector, W_g, W_n, dopamine_tonic):
 
     temp = []
     rew = []
+
     for t in range(simulation_length - 1):
+
+        reward_vector = []
+        for i in range(bandit.n):
+            reward_vector.append(bandit.get_reward(i))
+ 
+        max_possible_reward = np.sum(reward_vector)
 
         # find sigmoid activations
         act_Go[t,:] = sigmoid(np.dot(Stimulus, W_g))
@@ -232,10 +239,5 @@ if __name__  == "__main__":
     W_g = np.random.random((Stimulus.shape[0], Stimulus.shape[0]))
     W_n = np.random.random((Stimulus.shape[0], Stimulus.shape[0]))
     dopamine_tonic = 1.4
-    reward_vector = []
-
     
-    for i in range(bandit.n):
-        reward_vector.append(bandit.get_reward(i))
- 
-    Stimulus, temporal_diff_err, gradient_clipp, winning_slots, W_g, W_n = BG(Stimulus, reward_vector, W_g, W_n, dopamine_tonic)
+    Stimulus, temporal_diff_err, gradient_clipp, winning_slots, W_g, W_n = BG(Stimulus, bandit, W_g, W_n, dopamine_tonic)
