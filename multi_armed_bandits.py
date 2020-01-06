@@ -12,7 +12,7 @@ class BernoulliBandit():
     def __init__(self, n = 100):
         # number of slot machines to use
         self.n = n
-        self.prob_dist = [np.random.random() for _ in range(self.n)]
+        self.prob_dist = np.array([np.random.random() for _ in range(self.n)])
         self.best_rv = max(self.prob_dist)
 
     def get_reward(self, i):
@@ -27,7 +27,7 @@ class EpsilonGreedySolver():
     """
     Using Epsilon-Greedy Algorithm to solve Multi-armed bandit problem
     """
-    def __init__(self, bandit, eps = 0.15, init_probability = 0.95):
+    def __init__(self, bandit, eps = 0.15, init_probability = 0.5):
         
         assert isinstance(bandit, BernoulliBandit)
         self.bandit = bandit
@@ -52,7 +52,7 @@ class EpsilonGreedySolver():
         self.estimates[i] += 1/(self.action_counts[i] + 1) * (self.bandit.get_reward(i) - self.estimates[i])
         return i
 
-    def start_stimulation(self, num_steps = 10000):
+    def start_stimulation(self, num_steps = 1000):
         for step in range(num_steps):
             i = self.return_greedy_step()
             self.action_counts[i] += 1
@@ -75,16 +75,23 @@ if __name__ == '__main__':
     agent3.start_stimulation()
     agent4.start_stimulation()
     
-    import time
-    for _ in range(100):
-        
-        plt.plot(agent1.hist_reward, label = "Agent1: e=0")
-        plt.plot(agent2.hist_reward, label = "Agent2: e=0.15")
-        plt.plot(agent3.hist_reward, label = "Agent3: e=0.35")
-        plt.plot(agent4.hist_reward, label = "Agent4: e=0.5")
-        plt.title("Cumulative Rewards vs Iterations")
-        plt.xlabel("Iterations")
-        plt.ylabel("Cumulative Rewards")
-        plt.legend()
-        plt.show()
-    
+    plt.plot(agent1.hist_punishment, label = "Agent1: e=0")
+    plt.plot(agent2.hist_punishment, label = "Agent2: e=0.15")
+    plt.plot(agent3.hist_punishment, label = "Agent3: e=0.35")
+    plt.plot(agent4.hist_punishment, label = "Agent4: e=0.5")
+    plt.title("Cumulative Punishment vs Iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Cumulative Punishment")
+    plt.legend()
+    plt.show()
+
+    plt.plot(agent1.hist_reward, label = "Agent1: e=0")
+    plt.plot(agent2.hist_reward, label = "Agent2: e=0.15")
+    plt.plot(agent3.hist_reward, label = "Agent3: e=0.35")
+    plt.plot(agent4.hist_reward, label = "Agent4: e=0.5")
+    plt.title("Cumulative Rewards vs Iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Cumulative Rewards")
+    plt.legend()
+    plt.show()
+
