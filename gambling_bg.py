@@ -1,5 +1,5 @@
 """
-Simulate Basal Ganglia - Go/NoGo mechanism
+Simulate Basal Ganglia - Go/NoGo mechanism for N-armed bandits
 """
 import numpy as np
 from matplotlib import pyplot as plt
