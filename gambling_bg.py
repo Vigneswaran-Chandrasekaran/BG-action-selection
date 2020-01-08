@@ -137,7 +137,7 @@ def BG(Stimulus, bandit, W_g, W_n, dopamine_tonic):
     """
     Ns = Stimulus.shape[0]   # number of stimulus
     
-    simulation_length = 1000
+    simulation_length = 50
     
     temporal_diff_err = np.zeros((simulation_length, Ns))
     gradient_clipp = np.zeros((simulation_length, Ns))
@@ -160,7 +160,7 @@ def BG(Stimulus, bandit, W_g, W_n, dopamine_tonic):
         reward_vector = []
         for i in range(bandit.n):
             reward_vector.append(bandit.get_reward(i))
- 
+
         max_possible_reward = np.sum(reward_vector)
 
         # find sigmoid activations
@@ -188,7 +188,7 @@ def BG(Stimulus, bandit, W_g, W_n, dopamine_tonic):
         if t == 0:
             gradient_clipp[t,:] = 0
         else:
-            gradient_clipp[t,:] -= gradient_clipp[t-1,:]
+            gradient_clipp[t,:] = act_Th[t] - act_Th[t-1]
 
         lr = 10/(t+1)
 
@@ -198,16 +198,18 @@ def BG(Stimulus, bandit, W_g, W_n, dopamine_tonic):
         W_n = W_n - delta_Wn
         W_g = W_g - delta_Wg
 
-        D_hi = 0.6
-        D_low = 0.4
+        D_hi = 0.1
+        D_low = -0.3
 
         if t > 0:
             for sim in range(Ns):
                 if gradient_clipp[t,sim] > D_hi:
                     delta_Stimulus[t + 1,sim] = delta_Stimulus[t,sim]
+                
                 elif gradient_clipp[t,sim] < D_hi and gradient_clipp[t,sim] >= D_low:
                     delta_Stimulus[t+1,sim] = delta_Stimulus[t,sim] + np.random.random()
-                else:
+                
+                elif gradient_clipp[t,sim] < D_low:
                     delta_Stimulus[t+1,sim] = -1 * delta_Stimulus[t,sim]
 
         Stimulus = Stimulus + delta_Stimulus[t+1,:]
