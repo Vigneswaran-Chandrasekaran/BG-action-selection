@@ -9,7 +9,7 @@ class BernoulliBandit():
     Class generates Bernoulli Probability Distribution and assign 
     reward function
     """
-    def __init__(self, n = 1000):
+    def __init__(self, n = 100):
         # number of slot machines to use
         self.n = n
         self.prob_dist = np.array([np.random.random() for _ in range(self.n)])
