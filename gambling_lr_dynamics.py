@@ -1,6 +1,12 @@
 """
-Simulate Basal Ganglia - Go/NoGo mechanism for N-armed bandits with learning dynamics
+Simulate Basal Ganglia - Go/Explore/NoGo regime for solving N-armed bandit problem
+
+References:
+1) Basal Ganglia System as an Engine for Exploration [https://doi.org/10.1007/978-1-4614-6675-8_81]
+2) The role of intra-thalamic and thalamocortical circuits in action selection [https://europepmc.org/article/med/11873842]
+3) https://lilianweng.github.io/lil-log/2018/01/23/the-multi-armed-bandit-problem-and-its-solutions.html
 """
+
 from matplotlib import pyplot as plt
 from matplotlib import animation
 import numpy as np
@@ -297,8 +303,6 @@ def BG(Stimulus, bandit, W_g, W_n):
         selected_slots.append(winning_slots)
     
     return temp, rew, selected_slots, reward_awarded
-
-
 
 if __name__  == "__main__":
 
