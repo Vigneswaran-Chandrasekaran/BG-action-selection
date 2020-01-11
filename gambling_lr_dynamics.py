@@ -1,10 +1,29 @@
 """
 Simulate Basal Ganglia - Go/NoGo mechanism for N-armed bandits with learning dynamics
 """
-import numpy as np
 from matplotlib import pyplot as plt
-from multi_armed_bandits import BernoulliBandit
+from matplotlib import animation
+import numpy as np
 import time
+
+class BernoulliBandit():
+    """
+    Class generates Bernoulli Probability Distribution and assign 
+    reward function
+    """
+    def __init__(self, n = 100):
+        # number of slot machines to use
+        self.n = n
+        self.prob_dist = np.array([np.random.random() for _ in range(self.n)])
+        self.best_rv = max(self.prob_dist)
+
+    def get_reward(self, i):
+        if np.random.random() <= self.prob_dist[i]:
+            return 1
+        return 0
+    
+    def get_underlying_prob(self, i):
+        return self.prob_dist[i]
 
 def sigmoid(x, dopamine_flag = False, a = 4, sign = 'n', norm_only = False):
 
@@ -47,7 +66,7 @@ def define_synapses(Ns):
         W_STN_e: STN to gpe
         W_STN_i: STN to gpi
 
-        Synpases between them:
+        Synpases between them (Lateral):
         ---------------------
 
         W_STN: within STN
@@ -147,7 +166,7 @@ def BG(Stimulus, bandit, W_g, W_n):
     # number of stimulus (i.e. number of arms/slots)
     Ns = Stimulus.shape[0]   
     # number of episodes for agent
-    simulation_length = 50
+    simulation_length = 100
     # action_values for each episode
     action_values = np.zeros((simulation_length, Ns))
     # temporal difference error [reward - action value]
@@ -161,8 +180,10 @@ def BG(Stimulus, bandit, W_g, W_n):
     # cumulative reward awarded so far
     tot_reward_awarded = 0
     # lists to monitor performance
-    temp = []
-    rew = []
+    temp = []    # store temp diff error
+    rew = []     # store reward earned till the instant
+    selected_slots = [] # selected slot/arm
+
     # flag to check whether dopamine influence is on/off
     # TODO: control the magnitude of dopamine using gradient_clip history?
     dopamine_flag = False
@@ -225,7 +246,6 @@ def BG(Stimulus, bandit, W_g, W_n):
         # TODO: use W_STN and W_e to moderate W_STN_e and W_e_STN
         # Highest activation is considered as winner
         winning_slots = np.argmax(action_values[epi])
-        print(winning_slots)
         # calculate temp diff error
         temporal_diff_err[epi] = reward_vector - action_values[epi]
         # learning rate (decays by time)
@@ -249,34 +269,36 @@ def BG(Stimulus, bandit, W_g, W_n):
         # define threshold to estimate delta_stimulus
         D_hi = 0.65
         D_low = 0.35
+        
         # iterate the stimulus value for each slot in accordance to gradient_clipp[slot]
         for slot in range(Ns):
+
             # GO action
             if gradient_clipp[epi,slot] > D_hi:
                 delta_Stimulus[epi + 1,slot] = delta_Stimulus[epi,slot]
                 # dopamine is set to True: (the next action is predicted to be reward gaining)
                 dopamine_flag = True
+            
             # Explore (add gaussian noise) and set dopamine false
             elif gradient_clipp[epi,slot] < D_hi and gradient_clipp[epi,slot] >= D_low:
-                delta_Stimulus[epi + 1,slot] = delta_Stimulus[epi,slot] + np.random.random()
+                delta_Stimulus[epi + 1,slot] = delta_Stimulus[epi,slot] + 3 * np.random.random()
                 dopamine_flag = False
+            
             # NoGO action
             elif gradient_clipp[epi,slot] < D_low:
                 delta_Stimulus[epi+1,slot] = -1 * delta_Stimulus[epi,slot]
                 dopamine_flag = False
+            
         # update stimulus [take next step]
         Stimulus = Stimulus + delta_Stimulus[epi+1,:]
-        # monitors 
+        # update monitors 
         temp.append(np.sum(temporal_diff_err[epi,:]))
         rew.append(tot_reward_awarded)
+        selected_slots.append(winning_slots)
+    
+    return temp, rew, selected_slots, reward_awarded
 
-    plt.plot(rew, label = "Rewards")
-    plt.xlabel("Epochs")
-    plt.ylabel("Rewards")
-    plt.title("Rewards vs Epochs")
-    plt.legend()
-    plt.show()
-    return Stimulus, temporal_diff_err[simulation_length - 2,:], gradient_clipp[simulation_length - 2,:], winning_slots, W_g, W_n
+
 
 if __name__  == "__main__":
 
@@ -292,4 +314,39 @@ if __name__  == "__main__":
     # Weights connecting D2
     W_n = np.random.random((Stimulus.shape[0], Stimulus.shape[0]))
     # start learning
-    Stimulus, temporal_diff_err, gradient_clipp, winning_slots, W_g, W_n = BG(Stimulus, bandit, W_g, W_n)
+    temp, rew, selected_slots, reward_awarded = BG(Stimulus, bandit, W_g, W_n)
+    # plot figure
+    figure = plt.figure()
+    # add figure axis
+    axis = figure.add_subplot(1,1,1)
+    # dynamic text to update
+    message = axis.text(0.02, 0.95, "", transform = axis.transAxes)
+    
+    # function to plot dynamic graph of the learning
+    def animate(i):
+        # plot reward from 0 to i (iterator)
+        axis.plot(rew[0:i])
+        plt.xlabel("Episodes")
+        plt.ylabel("Rewards so far")
+        # set axis limits
+        plt.xlim((0,100))
+        plt.ylim((0,100))
+        # set axis ticks (frequency)
+        plt.xticks(np.arange(0, 100, 10))
+        plt.yticks(np.arange(0, 100, 10))
+        plt.title("Total_rewards vs Episodes")
+        # dynamic message
+        message.set_text(" -- Episode: " + str(i) + " -- Slot selected: " + str(selected_slots[i]) + " -- Reward awarded: " + str(reward_awarded[i]))
+        if i == len(selected_slots) - 1:
+            print("Total rewards awarded: " + str(rew[i]))
+            print("Slots selected by bandit: ")
+            print(set(selected_slots))
+            print("Max no. times selected slot: " + str(max(selected_slots, key = selected_slots.count)))
+            print("Underlying success rate of max no. times selected slot: " + str(bandit.prob_dist[max(selected_slots, key = selected_slots.count)]))
+            _ = input(" * Enter any key to exit * ")
+            exit(1)
+
+    # call animation
+    ani = animation.FuncAnimation(figure, animate, interval=100) 
+    plt.grid()
+    plt.show()
