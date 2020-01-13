@@ -24,7 +24,8 @@ class BernoulliBandit():
         self.best_rv = max(self.prob_dist)
 
     def get_reward(self, i):
-        if np.random.random() <= self.prob_dist[i]:
+        #if np.random.random() <= self.prob_dist[i]:
+        if self.prob_dist[i] >= 0.98 and np.random.random() <= self.prob_dist[i]:
             return 1
         return 0
     
@@ -106,7 +107,7 @@ def define_synapses(Ns):
     return(Wit, Wne, Wgi, W_e_STN, W_STN_e, W_STN_i, W_STN, W_e)
 
 def calculate_reward_for_actions(winning_slots, reward_vector):
-    
+    # check with reward vector to return reward 1 or 0
     reward_score = 0
     if reward_vector[winning_slots] == 1:
         reward_score += 1
@@ -354,3 +355,9 @@ if __name__  == "__main__":
     ani = animation.FuncAnimation(figure, animate, interval=100) 
     plt.grid()
     plt.show()
+    """
+    TODO: 1) Check with different types of pdfs
+          2) Lateral synapses dependence in oscillation
+          3) Dopamine influence in DP/IP
+          4) PD distinction from control
+    """
